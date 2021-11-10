@@ -20,7 +20,7 @@ endforeach()
 
 add_executable(3353_PA_03
         football.graphml
-        main.cpp)
+        main.cpp GN.h)
 
 target_link_libraries(3353_PA_03 Boost::locale Boost::graph)
 
