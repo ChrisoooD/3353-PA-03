@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost 1.40 COMPONENTS locale graph REQUIRED)
 
 set (input01 "football.graphml")
+set (input02 "test.graphml")
 
 #
 ##########################################
