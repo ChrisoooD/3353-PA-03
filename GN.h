@@ -24,6 +24,7 @@ struct EdgeProperty { std::string Name; };
 struct node{
     int node_id;
     string node_name;
+//    left is current node, right is other end of edge
     vector<pair<int,int>> edges;
 //    bool operator () (const node &lhs, const node &rhs) const{
 //        return lhs.connections.size() > rhs.connections.size();
