@@ -59,7 +59,14 @@ public:
             }
             adj.push_back(temp_node);
         }
-        cout<<"adj vector created"<<endl;
+        cout<<"adj vector created:"<<endl;
+        for (int i=0; i<adj.size(); i++){
+            cout<<adj[i].node_name<<" "<<adj[i].node_id<<" -> ";
+            for (int j=0; j<adj[i].edge_count(); j++){
+                cout<< adj[i].edges[j].second <<" ";
+            }
+            cout<<endl;
+        }
     }
 
 
