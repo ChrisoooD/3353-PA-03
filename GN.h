@@ -21,6 +21,17 @@ using namespace std;
 struct GraphData { std::string Name; };
 struct VertexProperty { std::string Name; };
 struct EdgeProperty { std::string Name; };
+struct node{
+    int node_id;
+    string node_name;
+    vector<pair<int,int>> edges;
+//    bool operator () (const node &lhs, const node &rhs) const{
+//        return lhs.connections.size() > rhs.connections.size();
+//    }
+    int edge_count(){
+        return edges.size();
+    }
+};
 
 using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty, GraphData>;
 
@@ -35,7 +46,20 @@ public:
         Graph g = ReadIFGraph(inFile);
         print_graph(g, get(&VertexProperty::Name, g));
 
-        g.m_edges.
+//        get a list of all the connections
+        vector<node> adj;
+        for (int i=0; i< g.m_vertices.size(); i++){
+            node temp_node;
+            temp_node.node_name = g.m_vertices[i].m_property.Name;
+            temp_node.node_id = i;
+            auto *ptr = &g.m_vertices[i].m_out_edges;
+            for (auto p: g.m_vertices[i].m_out_edges){
+                int l= p.m_target;
+                temp_node.edges.push_back(make_pair(i, l));
+            }
+            adj.push_back(temp_node);
+        }
+        cout<<"adj vector created"<<endl;
     }
 
 
