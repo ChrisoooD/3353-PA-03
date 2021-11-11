@@ -71,8 +71,8 @@ public:
         }
 
         cout<<"calculate Q without cut:"<<endl;
-        vector<vector<int>>all_v={{0, 1, 2, 3, 4}};
-        long q_value= calc_Q(all_v);
+        vector<vector<int>>all_v={{0, 1, 4}, {2, 3}};
+        double q_value= calc_Q(all_v);
         cout<<q_value<<endl;
 
     }
@@ -88,17 +88,17 @@ public:
         return graph;
     }
 
-    long calc_Q(vector<vector<int>>all_vertices){
-        long Q_sum=0;
-        int all_links = g.m_edges.size();
-        int double_all_links = all_links *2;
+    double calc_Q(vector<vector<int>>all_vertices){
+        double Q_sum=0;
+        double all_links = g.m_edges.size();
+        double double_all_links = all_links *2;
         for (int i=0; i<all_vertices.size(); i++){
-            int links_between_nodes = calc_links_between_nodes(all_vertices[i]);
-            int sum_of_degrees = calc_sum_of_degrees(all_vertices[i]);
-            long temp_rhs = sum_of_degrees / double_all_links;
+            double links_between_nodes = calc_links_between_nodes(all_vertices[i]);
+            double sum_of_degrees = calc_sum_of_degrees(all_vertices[i]);
+            double temp_rhs = sum_of_degrees / double_all_links;
             temp_rhs = temp_rhs * temp_rhs;
-            long temp_lhs = links_between_nodes / all_links;
-            long temp_long = temp_lhs - temp_rhs;
+            double temp_lhs = links_between_nodes / all_links;
+            double temp_long = temp_lhs - temp_rhs;
             Q_sum = Q_sum + temp_long;
         }
 
@@ -108,10 +108,11 @@ public:
 
     int calc_links_between_nodes(vector<int> community){
         int links_between_nodes =0;
-        for (int i=0; i<community.size()-1; i++){
+        int sz = community.size();
+        for (int i=0; i<(sz-1); i++){
             int a = community[i];
-            for (int j=i+1; j<community.size();j++){
-                int b = community[i+j];
+            for (int j=i+1; j<sz;j++){
+                int b = community[j];
 //                if link builds between vertex a and vertex b, increment links_between_nodes
                 if(edge(vertex(a,g),vertex(b,g),g).second)
                     links_between_nodes++;
