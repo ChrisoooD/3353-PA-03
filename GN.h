@@ -26,25 +26,34 @@ using namespace boost;
 struct GraphData { std::string Name; };
 struct VertexProperty { std::string Name; };
 struct EdgeProperty { std::string Name; };
+struct node{
+    int node_id;
+    string node_name;
+    vector<pair<int,int>> edges;
+    //    bool operator () (const node &lhs, const node &rhs) const{
+    //        return lhs.connections.size() > rhs.connections.size();
+    //    }
+    int edge_count(){
+        return edges.size();
+    }
+};
+
 
 using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty, GraphData>;
 
 class GN{
 public:
+    Graph g;
+    vector<node> adj;
 
     void gn_run(string filename){
         std::ifstream inFile(filename);
         if (! inFile.is_open()){
             std::cout<<"nope"<<std::endl;
         }
-        Graph g = ReadIFGraph(inFile);
+        g = ReadIFGraph(inFile);
         //print_graph(g, get(&VertexProperty::Name, g));
 
-
-//        if(edge(vertex(0,g),vertex(1,g),g).second)
-//            cout<<"there is a edge"<<endl;
-//        else
-//            cout<<"fuck you"<<endl;
 
 
 
@@ -54,68 +63,133 @@ public:
 
         ///Calculate Edge Betweeness
 //        for(int i =0;i<5;i++){
-            boost::shared_array_property_map<double, boost::property_map<Graph, boost::vertex_index_t>::const_type>
-            centrality_map(num_vertices(g), get(boost::vertex_index, g));
-            boost::brandes_betweenness_centrality(g,centrality_map);
+        boost::shared_array_property_map<double, boost::property_map<Graph, boost::vertex_index_t>::const_type>
+                centrality_map(num_vertices(g), get(boost::vertex_index, g));
+        boost::brandes_betweenness_centrality(g,centrality_map);
 
-            int highest1 = 0;
-            int highest2 = 0;
-            int index1 = 0;
-            int index2 = 0;
-            bool removed=false;
+        int highest1 = 0;
+        int highest2 = 0;
+        int index1 = 0;
+        int index2 = 0;
+        bool removed=false;
 
+        for(int i =0;i<g.m_vertices.size();i++)
+        {
+            //cout<<centrality_map[i]<<endl;
+            if(centrality_map[i]>highest1)
+            {
+                highest1=centrality_map[i];
+                index1=i;
+            }
+            else if(centrality_map[i]>highest2)
+            {
+                highest2=centrality_map[i];
+                index2=i;
+            }
+        }
+
+        ///Removing the Edge
+        while(removed==false){
+            if(edge(vertex(index1,g),vertex(index2,g),g).second)
+            {
+                remove_out_edge_if(vertex(index1,g), incident_to(vertex(index2,g), g), g);
+                cout<<"Removed vertex "<<index1<<" "<<index2<<endl;
+                removed=true;
+            }
+            else
+            {
+                cout<<"Attempting to remove vertex "<<index1<<" "<<index2<<", remove fail"<<endl;
+                centrality_map[index2]=0;
+                highest2=0;
+            }
             for(int i =0;i<g.m_vertices.size();i++)
             {
                 //cout<<centrality_map[i]<<endl;
-                if(centrality_map[i]>highest1)
-                {
-                    highest1=centrality_map[i];
-                    index1=i;
-                }
-                else if(centrality_map[i]>highest2)
+                if(centrality_map[i]>highest2)
                 {
                     highest2=centrality_map[i];
                     index2=i;
                 }
             }
-
-            while(removed==false){
-                if(edge(vertex(index1,g),vertex(index2,g),g).second)
-                {
-                    remove_out_edge_if(vertex(index1,g), incident_to(vertex(index2,g), g), g);
-                    cout<<"Removed vertex "<<index1<<" "<<index2<<endl;
-                    removed=true;
-                }
-                else
-                {
-                    cout<<"Attempting to remove vertex "<<index1<<" "<<index2<<", remove fail"<<endl;
-                    centrality_map[index2]=0;
-                    highest2=0;
-                }
-                for(int i =0;i<g.m_vertices.size();i++)
-                {
-                    //cout<<centrality_map[i]<<endl;
-                    if(centrality_map[i]>highest2)
-                    {
-                        highest2=centrality_map[i];
-                        index2=i;
-                    }
-                }
-            }
-
-
-
+        }
 //        }
 
 
-        //print_graph(g, get(&VertexProperty::Name, g));
+        print_graph(g, get(&VertexProperty::Name, g));
 
-//        boost::brandes_betweenness_centrality(g,centrality_map);
-//
-//        for(int i =0;i<g.m_vertices.size();i++)
-//            cout<<centrality_map[i]<<endl;
 
-        vector <int> community;
+
+        for (int i=0; i< g.m_vertices.size(); i++){
+            node temp_node;
+            temp_node.node_name = g.m_vertices[i].m_property.Name;
+            temp_node.node_id = i;
+            auto *ptr = &g.m_vertices[i].m_out_edges;
+            for (auto p: g.m_vertices[i].m_out_edges){
+                int l= p.m_target;
+                temp_node.edges.push_back(make_pair(i, l));
+            }
+            adj.push_back(temp_node);
+        }
+        cout<<"adj vector created:"<<endl;
+        for (int i=0; i<adj.size(); i++){
+            cout<<adj[i].node_name<<" "<<adj[i].node_id<<" -> ";
+            for (int j=0; j<adj[i].edge_count(); j++){
+                cout<< adj[i].edges[j].second <<" ";
+            }
+            cout<<endl;
+        }
+
+        ///Creating the communities by conducting a BFS on all nodes
+        vector<vector<int>> communities;
+        stack <int> vertexes;
+        vector <bool> visited(adj.size());
+        int vertexVisited = 0;
+
+        int startVertex=-1;
+        int tempVertex =-1;
+
+        while(vertexVisited !=adj.size())
+        {
+            ///Find node that has not been visited
+            for(int i =0;i<adj.size();i++)
+            {
+                if(visited[i]==false)
+                {
+                    cout<<"Vertex: " << i <<endl;
+                    vertexes.push(i);
+                    break;
+                }
+            }
+
+            vector<int> singleCommunity;
+            while(!vertexes.empty())
+            {
+                startVertex=vertexes.top();
+                vertexes.pop();
+                if (!visited[startVertex]) {
+                    //mark t
+                    visited[startVertex] = true;
+                    vertexVisited++;
+                    singleCommunity.push_back(startVertex);
+                    for (int i = 0; i < adj[startVertex].edge_count(); i++) {
+                        tempVertex = adj[startVertex].edges[i].second;
+                        if (visited[tempVertex] == false) {
+                            vertexes.push(tempVertex);
+                        }
+                    }
+                }
+            }
+            communities.push_back(singleCommunity);
+        }
+
+        cout<<"Communities found "<<communities.size()<<endl;
+        for (int i = 0; i < communities.size(); ++i) {
+            cout << "community " << i << endl;
+            for (int j = 0;j<communities[i].size();j++) {
+                cout << communities[i][j] << " ";
+            }
+            cout << endl;
+        }
 
 
 
