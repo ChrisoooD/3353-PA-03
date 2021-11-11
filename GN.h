@@ -69,6 +69,12 @@ public:
             }
             cout<<endl;
         }
+
+        cout<<"calculate Q without cut:"<<endl;
+        vector<vector<int>>all_v={{0, 1, 2, 3, 4}};
+        long q_value= calc_Q(all_v);
+        cout<<q_value<<endl;
+
     }
 
 
@@ -82,7 +88,7 @@ public:
         return graph;
     }
 
-    void calc_Q(vector<vector<int>>all_vertices){
+    long calc_Q(vector<vector<int>>all_vertices){
         long Q_sum=0;
         int all_links = g.m_edges.size();
         int double_all_links = all_links *2;
@@ -96,7 +102,7 @@ public:
             Q_sum = Q_sum + temp_long;
         }
 
-
+        return Q_sum;
     }
 
 
