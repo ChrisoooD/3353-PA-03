@@ -29,10 +29,6 @@ struct EdgeProperty { std::string Name; };
 struct node{
     int node_id;
     string node_name;
-
-//    left is current node, right is other end of edge
-    vector<pair<int,int>> edges;
-
     vector<pair<int,int>> edges;
     int edge_count(){
         return edges.size();
@@ -44,7 +40,9 @@ using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS
 class GN{
 public:
     Graph g;
+    Graph gcopy;
     vector<node> adj;
+    vector<node> adjcopy;
 
     void gn_run(string filename){
         std::ifstream inFile(filename);
@@ -52,13 +50,31 @@ public:
             std::cout<<"nope"<<std::endl;
         }
         g = ReadIFGraph(inFile);
+        gcopy = g;
 
         print_graph(g, get(&VertexProperty::Name, g));
 
-//        get a list of all the connections
 
         //print_graph(g, get(&VertexProperty::Name, g));
-
+        for (int i=0; i< g.m_vertices.size(); i++){
+            node temp_node;
+            temp_node.node_name = g.m_vertices[i].m_property.Name;
+            temp_node.node_id = i;
+            auto *ptr = &g.m_vertices[i].m_out_edges;
+            for (auto p: g.m_vertices[i].m_out_edges){
+                int l= p.m_target;
+                temp_node.edges.push_back(make_pair(i, l));
+            }
+            adjcopy.push_back(temp_node);
+        }
+        cout<<"adjcopy vector created:"<<endl;
+        for (int i=0; i<adjcopy.size(); i++){
+            cout<<adjcopy[i].node_name<<" "<<adjcopy[i].node_id<<" -> ";
+            for (int j=0; j<adjcopy[i].edge_count(); j++){
+                cout<< adjcopy[i].edges[j].second <<" ";
+            }
+            cout<<endl;
+        }
 
 
 
@@ -125,6 +141,7 @@ public:
 
 
 
+
         for (int i=0; i< g.m_vertices.size(); i++){
             node temp_node;
             temp_node.node_name = g.m_vertices[i].m_property.Name;
@@ -146,10 +163,9 @@ public:
         }
 
 
-        cout<<"calculate Q without cut:"<<endl;
-        vector<vector<int>>all_v={{0, 1, 4}, {2, 3}};
-        double q_value= calc_Q(all_v);
-        cout<<q_value<<endl;
+
+
+
 
         ///Creating the communities by conducting a BFS on all nodes
         vector<vector<int>> communities;
@@ -203,7 +219,9 @@ public:
             cout << endl;
         }
 
-
+        cout<<"calculate Q without cut:"<<endl;
+        double q_value= calc_Q(communities);
+        cout<<q_value<<endl;
 
 
     }
@@ -221,7 +239,7 @@ public:
 
     double calc_Q(vector<vector<int>>all_vertices){
         double Q_sum=0;
-        double all_links = g.m_edges.size();
+        double all_links = gcopy.m_edges.size();
         double double_all_links = all_links *2;
         for (int i=0; i<all_vertices.size(); i++){
             double links_between_nodes = calc_links_between_nodes(all_vertices[i]);
@@ -255,7 +273,7 @@ public:
     int calc_sum_of_degrees(vector<int> community){
         int sum_of_degrees =0;
         for (int i=0; i<community.size(); i++){
-            sum_of_degrees = sum_of_degrees + adj[community[i]].edge_count();
+            sum_of_degrees = sum_of_degrees + adjcopy[community[i]].edge_count();
         }
         return sum_of_degrees;
     }
