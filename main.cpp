@@ -10,7 +10,7 @@
 int main() {
     GN GirvanN;
 
-    GirvanN.gn_run("test.graphml");
+    GirvanN.gn_run("football.graphml");
 
 
 }
