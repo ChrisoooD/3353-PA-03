@@ -99,11 +99,17 @@ public:
 
     }
 
+
     int calc_links_between_nodes(vector<int> community){
         int links_between_nodes =0;
         for (int i=0; i<community.size()-1; i++){
             int a = community[i];
-            int b = community[i+1];
+            for (int j=i+1; j<community.size();j++){
+                int b = community[i+j];
+//                if link builds between vertex a and vertex b, increment links_between_nodes
+                if(edge(vertex(a,g),vertex(b,g),g).second)
+                    links_between_nodes++;
+            }
         }
         return links_between_nodes;
     }
