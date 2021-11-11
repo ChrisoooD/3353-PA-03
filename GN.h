@@ -37,17 +37,19 @@ using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS
 
 class GN{
 public:
+    Graph g;
+    vector<node> adj;
 
     void gn_run(string filename){
         std::ifstream inFile(filename);
         if (! inFile.is_open()){
             std::cout<<"nope"<<std::endl;
         }
-        Graph g = ReadIFGraph(inFile);
+        g = ReadIFGraph(inFile);
         print_graph(g, get(&VertexProperty::Name, g));
 
 //        get a list of all the connections
-        vector<node> adj;
+
         for (int i=0; i< g.m_vertices.size(); i++){
             node temp_node;
             temp_node.node_name = g.m_vertices[i].m_property.Name;
@@ -80,8 +82,38 @@ public:
         return graph;
     }
 
-    void calc_edge_betweeness(){
+    void calc_Q(vector<vector<int>>all_vertices){
+        long Q_sum=0;
+        int all_links = g.m_edges.size();
+        int double_all_links = all_links *2;
+        for (int i=0; i<all_vertices.size(); i++){
+            int links_between_nodes = calc_links_between_nodes(all_vertices[i]);
+            int sum_of_degrees = calc_sum_of_degrees(all_vertices[i]);
+            long temp_rhs = sum_of_degrees / double_all_links;
+            temp_rhs = temp_rhs * temp_rhs;
+            long temp_lhs = links_between_nodes / all_links;
+            long temp_long = temp_lhs - temp_rhs;
+            Q_sum = Q_sum + temp_long;
+        }
 
+
+    }
+
+    int calc_links_between_nodes(vector<int> community){
+        int links_between_nodes =0;
+        for (int i=0; i<community.size()-1; i++){
+            int a = community[i];
+            int b = community[i+1];
+        }
+        return links_between_nodes;
+    }
+
+    int calc_sum_of_degrees(vector<int> community){
+        int sum_of_degrees =0;
+        for (int i=0; i<community.size(); i++){
+            sum_of_degrees = sum_of_degrees + adj[community[i]].edge_count();
+        }
+        return sum_of_degrees;
     }
 
 
