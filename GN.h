@@ -32,8 +32,6 @@ struct node{
 
 //    left is current node, right is other end of edge
     vector<pair<int,int>> edges;
-
-    vector<pair<int,int>> edges;
     int edge_count(){
         return edges.size();
     }
