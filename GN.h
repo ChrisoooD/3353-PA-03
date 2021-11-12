@@ -47,6 +47,48 @@ public:
     Graph gcopy;
     vector<node> adj;
     vector<node> adjcopy;
+    int communityFound = 0;
+    double maxQ=-1;
+    double calculatedQ=-1;
+    int bestRun=0;
+    int runs=0;
+    vector<vector<int>> communities;
+
+
+    void gn_run(string filename, int num){
+        std::ifstream inFile(filename);
+        if (! inFile.is_open()){
+            std::cout<<"nope"<<std::endl;
+        }
+        g = ReadIFGraph(inFile);
+        gcopy = g;
+
+        print_graph(g, get(&VertexProperty::Name, g));
+
+        generateOriginalAdj();
+
+
+        while(communityFound<num){
+            if((calculatedQ>maxQ)&(calculatedQ>0))
+            {
+                maxQ=calculatedQ;
+                bestRun = runs;
+            }
+
+            Girven_Newman();
+
+            generateAdj();
+
+            communities = foundCommunities();
+
+            runs++;
+
+            qCalculation();
+        }
+
+        printCommunities(communities);
+
+    }
 
     void gn_run(string filename){
         std::ifstream inFile(filename);
@@ -58,171 +100,38 @@ public:
 
         print_graph(g, get(&VertexProperty::Name, g));
 
-
-        for (int i=0; i< g.m_vertices.size(); i++){
-            node temp_node;
-            temp_node.node_name = g.m_vertices[i].m_property.Name;
-            temp_node.node_id = i;
-            auto *ptr = &g.m_vertices[i].m_out_edges;
-            for (auto p: g.m_vertices[i].m_out_edges){
-                int l= p.m_target;
-                temp_node.edges.push_back(make_pair(i, l));
-            }
-            adjcopy.push_back(temp_node);
-        }
-//        cout<<"adjcopy vector created:"<<endl;
-//        for (int i=0; i<adjcopy.size(); i++){
-//            cout<<adjcopy[i].node_name<<" "<<adjcopy[i].node_id<<" -> ";
-//            for (int j=0; j<adjcopy[i].edge_count(); j++){
-//                cout<< adjcopy[i].edges[j].second <<" ";
-//            }
-//            cout<<endl;
-//        }
+        generateOriginalAdj();
 
 
-
-
-
-
-
-        ///Calculate Edge Betweeness
-        int communityFound = 0;
-        double maxQ=-1;
-        double calculatedQ=-1;
-        int bestRun=0;
-        int runs=0;
-
-        while(communityFound<12){
+        while(communityFound<g.m_vertices.size()){
             if((calculatedQ>maxQ)&(calculatedQ>0))
             {
                 maxQ=calculatedQ;
                 bestRun = runs;
             }
+            Girven_Newman();
 
+            generateAdj();
 
-            ECMap ecm;
-            boost::brandes_betweenness_centrality(g,boost::edge_centrality_map(boost::make_assoc_property_map(ecm)));
+            communities = foundCommunities();
 
-            std::vector<std::reference_wrapper<ECEntry>> ranking(ecm.begin(), ecm.end());
-
-            {
-                // top-n
-                auto n = std::min(1ul, ranking.size());
-                auto first = ranking.begin(), middle = first + n, last = ranking.end();
-                std::partial_sort(
-                        first, middle, last,
-                        [](ECEntry const& a, ECEntry const& b) { return a.second > b.second; });
-
-                ranking.erase(middle, last);
-            }
-
-
-            ///Removing the Edge
-            int index1=0;
-            int index2=0;
-            for (ECEntry const& entry : ranking) {
-                auto [edge, centrality] = entry;
-                int index1 = edge.m_source;
-                int index2 = edge.m_target;
-                std::cout << "Edge "<<edge.m_source <<" to "<<edge.m_target << " ";
-                std::cout << " centrality " << centrality << "\n";
-                remove_out_edge_if(vertex(index1,g), incident_to(vertex(index2,g), g), g);
-            }
-//            ECEntry const& entry = ranking.at(0);
-//            auto [edge, centrality] = entry;
-//            std::cout << "Edge "<<edge.m_source <<" to "<<edge.m_target << " ";
-//            std::cout << " centrality " << centrality << "\n";
-//            int index1 = edge.m_source;
-//            int index2 = edge.m_target;
-//            remove_out_edge_if(vertex(index1,g), incident_to(vertex(index2,g), g), g);
-
-
-
-
-
-
-            for (int i=0; i< g.m_vertices.size(); i++){
-                node temp_node;
-                temp_node.node_name = g.m_vertices[i].m_property.Name;
-                temp_node.node_id = i;
-                auto *ptr = &g.m_vertices[i].m_out_edges;
-                for (auto p: g.m_vertices[i].m_out_edges){
-                    int l= p.m_target;
-                    temp_node.edges.push_back(make_pair(i, l));
-                }
-                adj.push_back(temp_node);
-            }
-//        cout<<"adj vector created:"<<endl;
-//        for (int i=0; i<adj.size(); i++){
-//            cout<<adj[i].node_name<<" "<<adj[i].node_id<<" -> ";
-//            for (int j=0; j<adj[i].edge_count(); j++){
-//                cout<< adj[i].edges[j].second <<" ";
-//            }
-//            cout<<endl;
-//        }
-
-
-            ///Creating the communities by conducting a BFS on all nodes
-            vector<vector<int>> communities;
-            stack <int> vertexes;
-            vector <bool> visited(adj.size());
-            int vertexVisited = 0;
-
-            int startVertex=-1;
-            int tempVertex =-1;
-
-            while(vertexVisited !=adj.size())
-            {
-                ///Find node that has not been visited
-                for(int i =0;i<adj.size();i++)
-                {
-                    if(visited[i]==false)
-                    {
-                        //cout<<"Vertex: " << i <<endl;
-                        vertexes.push(i);
-                        break;
-                    }
-                }
-
-                vector<int> singleCommunity;
-                while(!vertexes.empty())
-                {
-                    startVertex=vertexes.top();
-                    vertexes.pop();
-                    if (!visited[startVertex]) {
-                        //mark t
-                        visited[startVertex] = true;
-                        vertexVisited++;
-                        singleCommunity.push_back(startVertex);
-                        for (int i = 0; i < adj[startVertex].edge_count(); i++) {
-                            tempVertex = adj[startVertex].edges[i].second;
-                            if (visited[tempVertex] == false) {
-                                vertexes.push(tempVertex);
-                            }
-                        }
-                    }
-                }
-                communities.push_back(singleCommunity);
-            }
-            communityFound=communities.size();
-            cout<<"Communities found "<<communities.size()<<endl;
-            for (int i = 0; i < communities.size(); ++i) {
-                cout << "community " << i << endl;
-                for (int j = 0;j<communities[i].size();j++) {
-                    cout << communities[i][j] << " ";
-                }
-                cout << endl;
-            }
-
-            calculatedQ= calc_Q(communities);
-            cout<<"MaxQ "<<maxQ<<endl;
-            cout<<"CalculatedQ "<<calculatedQ<<endl;
-            cout<<endl;
-            adj.clear();
             runs++;
+
+            qCalculation();
+            cout<<"Best runs happen at "<<bestRun<<" iterations"<<endl;
+            cout<<endl;
         }
 
-        cout<<"Best runs happen at "<<bestRun<<" iterations"<<endl;
+        g = gcopy;
+        for(int i =0;i<bestRun;i++)
+        {
+            Girven_Newman();
+        }
+        generateAdj();
+        communities = foundCommunities();
+        qCalculation();
+        printCommunities(communities);
+
 
     }
 
@@ -278,6 +187,148 @@ public:
         return sum_of_degrees;
     }
 
+    void generateOriginalAdj(){
+        for (int i=0; i< g.m_vertices.size(); i++){
+            node temp_node;
+            temp_node.node_name = g.m_vertices[i].m_property.Name;
+            temp_node.node_id = i;
+            auto *ptr = &g.m_vertices[i].m_out_edges;
+            for (auto p: g.m_vertices[i].m_out_edges){
+                int l= p.m_target;
+                temp_node.edges.push_back(make_pair(i, l));
+            }
+            adjcopy.push_back(temp_node);
+        }
+        //        cout<<"adjcopy vector created:"<<endl;
+        //        for (int i=0; i<adjcopy.size(); i++){
+        //            cout<<adjcopy[i].node_name<<" "<<adjcopy[i].node_id<<" -> ";
+        //            for (int j=0; j<adjcopy[i].edge_count(); j++){
+        //                cout<< adjcopy[i].edges[j].second <<" ";
+        //            }
+        //            cout<<endl;
+        //        }
+    }
+
+
+    void Girven_Newman(){ ///Reference: https://stackoverflow.com/questions/67066766/how-to-calculate-edge-betweenness-with-bgl
+
+        ///Calculate Edge Betweeness
+        ECMap ecm;
+        boost::brandes_betweenness_centrality(g,boost::edge_centrality_map(boost::make_assoc_property_map(ecm)));
+
+        std::vector<std::reference_wrapper<ECEntry>> ranking(ecm.begin(), ecm.end());
+
+        {
+            // top-n
+            auto n = std::min(1ul, ranking.size());
+            auto first = ranking.begin(), middle = first + n, last = ranking.end();
+            std::partial_sort(
+                    first, middle, last,
+                    [](ECEntry const& a, ECEntry const& b) { return a.second > b.second; });
+
+            ranking.erase(middle, last);
+        }
+
+
+        ///Than remove the edge with highest centrality
+        int index1=0;
+        int index2=0;
+        for (ECEntry const& entry : ranking) {
+            auto [edge, centrality] = entry;
+            int index1 = edge.m_source;
+            int index2 = edge.m_target;
+//            std::cout << "Edge "<<edge.m_source <<" to "<<edge.m_target << " ";
+//            std::cout << " centrality " << centrality << "\n";
+            remove_out_edge_if(vertex(index1,g), incident_to(vertex(index2,g), g), g);
+        }
+
+    }
+    void generateAdj(){
+        for (int i=0; i< g.m_vertices.size(); i++){
+            node temp_node;
+            temp_node.node_name = g.m_vertices[i].m_property.Name;
+            temp_node.node_id = i;
+            auto *ptr = &g.m_vertices[i].m_out_edges;
+            for (auto p: g.m_vertices[i].m_out_edges){
+                int l= p.m_target;
+                temp_node.edges.push_back(make_pair(i, l));
+            }
+            adj.push_back(temp_node);
+        }
+        //        cout<<"adj vector created:"<<endl;
+        //        for (int i=0; i<adj.size(); i++){
+        //            cout<<adj[i].node_name<<" "<<adj[i].node_id<<" -> ";
+        //            for (int j=0; j<adj[i].edge_count(); j++){
+        //                cout<< adj[i].edges[j].second <<" ";
+        //            }
+        //            cout<<endl;
+        //        }
+    }
+
+    vector<vector<int>> foundCommunities(){ ///Reference: https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
+        ///Creating the communities by conducting a BFS on all nodes
+        vector<vector<int>> communities;
+        stack <int> vertexes;
+        vector <bool> visited(adj.size());
+        int vertexVisited = 0;
+
+        int startVertex=-1;
+        int tempVertex =-1;
+
+        while(vertexVisited !=adj.size())
+        {
+            ///Find node that has not been visited
+            for(int i =0;i<adj.size();i++)
+            {
+                if(visited[i]==false)
+                {
+                    //cout<<"Vertex: " << i <<endl;
+                    vertexes.push(i);
+                    break;
+                }
+            }
+
+            vector<int> singleCommunity;
+            while(!vertexes.empty())
+            {
+                startVertex=vertexes.top();
+                vertexes.pop();
+                if (!visited[startVertex]) {
+                    //mark t
+                    visited[startVertex] = true;
+                    vertexVisited++;
+                    singleCommunity.push_back(startVertex);
+                    for (int i = 0; i < adj[startVertex].edge_count(); i++) {
+                        tempVertex = adj[startVertex].edges[i].second;
+                        if (visited[tempVertex] == false) {
+                            vertexes.push(tempVertex);
+                        }
+                    }
+                }
+            }
+            communities.push_back(singleCommunity);
+        }
+        communityFound=communities.size();
+        return communities;
+    }
+
+    void printCommunities(vector<vector<int>> communities){
+        cout<<"Communities found "<<communities.size()<<endl;
+        for (int i = 0; i < communities.size(); ++i) {
+            cout << "community " << i+1 << endl;
+            for (int j = 0;j<communities[i].size();j++) {
+                cout << communities[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+    void qCalculation(){
+        calculatedQ= calc_Q(communities);
+        cout<<"MaxQ "<<maxQ<<endl;
+        cout<<"CalculatedQ "<<calculatedQ<<endl;
+        cout<<endl;
+        adj.clear();
+    }
 
 
 
