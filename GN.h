@@ -26,6 +26,13 @@ using namespace boost;
 struct GraphData { std::string Name; };
 struct VertexProperty { std::string Name; };
 struct EdgeProperty { std::string Name; };
+
+using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty, GraphData>;
+using ECMap = std::map<Graph::edge_descriptor, double>;
+using ECEntry = ECMap::value_type;
+using Vertex = typename boost::graph_traits<Graph>::vertex_descriptor;
+using Edge   = std::pair<Vertex, Vertex>;
+
 struct node{
     int node_id;
     string node_name;
@@ -34,12 +41,9 @@ struct node{
         return edges.size();
     }
 };
+struct my_visitor: boost::default_bfs_visitor{};
 
-using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty, GraphData>;
-using ECMap = std::map<Graph::edge_descriptor, double>;
-using ECEntry = ECMap::value_type;
-using Vertex = typename boost::graph_traits<Graph>::vertex_descriptor;
-using Edge   = std::pair<Vertex, Vertex>;
+
 
 class GN{
 public:
@@ -90,6 +94,88 @@ public:
 
     }
 
+    void find_betweeness(int num){
+        bfs(0, 3);
+        cout<<"vis with path"<<endl;
+    }
+
+    void bfs(int s, int e){
+//        vector <int> prev = solve(s, e);
+    }
+
+    vector<int> reconstructPath(int s, int e, vector<int> &prev){
+        vector<int> path;
+        int prev_index =0;
+        while (prev[prev_index] != e && prev_index < prev.size()){
+            path[prev_index] = prev[prev_index];
+        }
+        if (path[path.size()] == e){
+            return path;
+        }
+    }
+
+    vector<vector<int>> solve(int s, int e){
+        vector<vector<int>> all_paths;
+        stack<int> curr;
+        curr.push(s);
+//      whenever a node is visited, mark it as true
+        vector<bool> visited;
+        for (int i=0; i<adj.size(); i++) {
+            visited[i] = false;
+        }
+//      mark starting node as visited
+        visited[s]=true;
+//      prev helps reconstructing path
+        vector<int> curr_path;
+        while (!curr.empty()){
+            int curr_top = curr.top();
+            if(curr_top == e){
+                curr.pop();
+            }
+            else{
+//                todo: need to update visited whenever popping: make end e always false,
+                vector<pair<int,int>> curr_adj = adj[curr_top].edges;
+                bool has_viable_adj = false;
+                int temp_curr;
+//                find a viable "go next" for current top
+                for (int top_adj=0; top_adj<curr_adj.size();top_adj++){
+                    temp_curr = curr_adj[top_adj].second;
+                    if (visited[temp_curr]){
+                        has_viable_adj = true;
+                    }
+                }
+//                if there is one viable "go next", make that the new top. else, pop top
+                if (has_viable_adj){
+                    curr.push(temp_curr);
+                }
+                else {
+                    curr.pop();
+                }
+            }
+
+
+        }
+
+//        find shortest path
+        vector<int> sizes;
+        for (int i=0; i<all_paths.size(); i++){
+            sizes[i]=all_paths[i].size();
+        }
+        int min_size = *min_element(sizes.begin(), sizes.end());
+        vector<vector<int>> shortest_paths;
+        for (int i=0; i<all_paths.size(); i++){
+            if (all_paths[i].size()==min_size){
+                shortest_paths.push_back(all_paths[i]);
+            }
+        }
+//        return the shortest path(s)
+        return shortest_paths;
+    }
+
+
+
+
+
     void gn_run(string filename){
         std::ifstream inFile(filename);
         if (! inFile.is_open()){
@@ -98,42 +184,45 @@ public:
         g = ReadIFGraph(inFile);
         gcopy = g;
 
-        print_graph(g, get(&VertexProperty::Name, g));
+        find_betweeness(0);
 
-        generateOriginalAdj();
-
-
-        while(communityFound<g.m_vertices.size()){
-            if((calculatedQ>maxQ)&(calculatedQ>0))
-            {
-                maxQ=calculatedQ;
-                bestRun = runs;
-            }
-            Girven_Newman();
-
-            generateAdj();
-
-            communities = foundCommunities();
-
-            runs++;
-
-            qCalculation();
-            cout<<"Best runs happen at "<<bestRun<<" iterations"<<endl;
-            cout<<endl;
-        }
-
-        g = gcopy;
-        for(int i =0;i<bestRun;i++)
-        {
-            Girven_Newman();
-        }
-        generateAdj();
-        communities = foundCommunities();
-        qCalculation();
-        printCommunities(communities);
+//        print_graph(g, get(&VertexProperty::Name, g));
+//
+//        generateOriginalAdj();
+//
+//
+//        while(communityFound<g.m_vertices.size()){
+//            if((calculatedQ>maxQ)&(calculatedQ>0))
+//            {
+//                maxQ=calculatedQ;
+//                bestRun = runs;
+//            }
+//            Girven_Newman();
+//
+//            generateAdj();
+//
+//            communities = foundCommunities();
+//
+//            runs++;
+//
+//            qCalculation();
+//            cout<<"Best runs happen at "<<bestRun<<" iterations"<<endl;
+//            cout<<endl;
+//        }
+//
+//        g = gcopy;
+//        for(int i =0;i<bestRun;i++)
+//        {
+//            Girven_Newman();
+//        }
+//        generateAdj();
+//        communities = foundCommunities();
+//        qCalculation();
+//        printCommunities(communities);
 
 
     }
+
 
 
     Graph ReadIFGraph(ifstream& is) {
